@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Pipeline Graph</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+    * {
+    font-family: Arial, sans-serif;
+}
+
+        .container {
+            width: 95%;
+            height: 40vh;
+            margin: 20px auto;  /* 新增居中 */
+            position: relative; /* 新增定位 */
+        }
+        .title {
+            font: 24px/1.5 'Arial', sans-serif;
+            color: #6b7b8c;
+            text-align: center;
+            padding: 12px 0;
+        }
+        .node rect {
+            rx: 8px;
+            ry: 8px;
+            stroke-width: 1.5;
+        }
+        .node text {
+            font: 12px sans-serif;
+            pointer-events: none;
+            text-anchor: middle;
+            dominant-baseline: central;
+        }
+        .link {
+            fill: none;
+            stroke-width: 2;
+            stroke-opacity: 0.6;
+        }
+        .tooltip {
+            position: absolute;
+            padding: 8px;
+            background: #fff9ec;
+            border: 1px solid #ffd8a8;
+            border-radius: 4px;
+            box-shadow: 3px 3px 10px rgba(0,0,0,0.1);
+            font: 12px/1.5 sans-serif;
+            color: #66512c;
+        }
+        .lower-container {
+            width: 95%;
+            height: 45vh;
+            margin: 20px auto;
+            display: flex;
+            gap: 20px;
+        }
+
+        .doc-panel, .info-panel {
+            height: 50vh;
+            flex: 1;
+            background: #f8f9fa;
+            border: 2px solid #B5C4B8;
+            border-radius: 12px;
+            padding: 15px;
+        }
+
+        #doc-list {
+            max-height: 95%;
+            overflow-y: auto;
+        }
+        .qa-box {
+            border-top: 2px solid #ecf0f1;
+            padding-top: 15px;
+            padding-bottom: 15px;
+            margin-bottom: 15px;
+            max-height: 30%;
+            overflow-y: auto;
+        }
+
+        .qa-question {
+            color: #2c3e50;
+            font-weight: 600;
+            margin-bottom: 12px;
+            max-height: 10%;
+            overflow-y: auto;
+        }
+
+        .qa-answer {
+            color: #34495e;
+            line-height: 1.6;
+        }
+    /* 在现有样式中添加 */
+
+
+
+        #output-box {
+            border-top: 2px solid #ecf0f1;
+            padding-top: 15px;
+            max-height: 50%;
+            overflow-y: auto;
+        }
+        /* 文档项样式 */
+        .doc-item {
+            border: 1px solid #B5C4B8;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 10px;
+            background: #fff;
+            box-shadow: 0 2px 6px rgba(175, 189, 188, 0.1);
+        }
+        .color-display {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-left: 20px;
+            flex: 1; /* 占据剩余空间 */
+            margin-right: 20px; /* 右侧间距 */
+        }
+
+
+        #control_container{
+            display: flex; /* 启用 Flexbox 布局 */
+            justify-content: space-between; /* 将子元素分布在容器的两端 */
+            align-items: center; /* 垂直居中对齐 */
+            width: 100%; /* 容器宽度 */
+            height: 15%;
+         
+        }
+
+
+
+        .color-box {
+            width: 24px;
+            height: 24px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        .value-display {
+            font-size: 0.9em;
+            min-width: 120px;
+            color: #666;
+        }
+        /* 答案分句样式 */
+        .sentence-box {
+            border: 1px solid #e0e7e9;
+            border-radius: 6px;
+            padding: 10px;
+            margin: 8px 0;
+            background: #f8fafb;
+            line-height: 1.5;
+        }
+        .output-line:hover {
+            background: #f0f0f0;
+        }
+        /* 输出结果样式调整 */
+        .output-line {
+            border-left: 3px solid #B5C4B8;
+            margin: 6px 0;
+            cursor: pointer;
+            padding: 8px 12px;
+            background: #fdfdfd;
+            border-radius: 4px;
+        }
+        .highlight-span {
+            cursor: pointer;
+        }
+        .highlight-span:hover {
+            filter: brightness(1.1);
+        }
+        .filter-slider {
+            margin-top: 15px;
+            width: 250px;
+            flex: 1; /* 占据剩余空间 */
+            display: none; /* 初始隐藏 */
+        }
+
+        .slider-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 0.9em;
+            color: #666;
+        }
+
+        #threshold {
+            width: 100%;
+            height: 4px;
+            background: #ddd;
+            border-radius: 2px;
+            outline: none;
+        }
+
+        #threshold::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            background: #ff4444;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div id="graph-container" class="container"></div>
+    <div id="tooltip" class="tooltip" style="opacity:0"></div>
+
+
+    <!-- 原有上半部分代码保持不变... -->
+    
+      <div class="lower-container">
+        <!-- 左半部文档列表 -->
+        <div class="doc-panel">
+            <div class="panel-title"> Documents</div>
+            <div id="doc-list" class="doc-list"></div>
+        </div>
+
+        <!-- 右半部信息面板 -->
+        <div class="info-panel">
+            <!-- 问题回答区域 -->
+            <div class="qa-box">
+                <div id="current-question" class="qa-question"></div>
+                <div id="current-answer" class="qa-answer"></div>
+            </div>
+
+            <!-- 控制面板 -->
+            <div class="control-box">
+                <label>Show Result：
+                    <select id="result-select" onchange="updateResult(this.value)">
+                        <option value="0">Result 1</option><option value="1">Result 2</option>
+                    </select>
+                </label>
+                <label style="margin-left:20px">Granularity：
+                    <select id="granularity">
+                        <option>Document-level</option>
+                        <option>Span-level</option>
+                        <option>Word-level</option>
+                    </select>
+                </label>
+                <div class="container" id="control_container">
+                    <div class="color-display">
+                        <div class="color-box"></div>
+                        <div class="value-display">Click document to show value</div>
+                    </div>
+                
+                    <div class="filter-slider" style="display:none">
+                        <div class="slider-header">
+                            <span>Filter Threshold: </span>
+                            <span id="threshold-value">0.00</span>
+                        </div>
+                        <input type="range" id="threshold" min="0" max="1" step="0.01" value="0">
+                    </div>
+                </div>
+
+            <!-- 输出结果 -->
+            <div id="output-box" class="output-box"></div>
+        </div>
+    </div>
+
+    <script>
+
+        const nodes = [{"id": "input", "type": "input", "params": {}}, {"id": "output", "type": "output", "params": {}}, {"id": "gpt-3.5-turbo-[1]", "type": "Generator", "params": {"type": "Generator", "Model": "gpt-3.5-turbo", "Max Turn": 6}}, {"id": "retriever-[4]", "type": "retriever", "params": {"type": "retriever", "Max Turn": 6}}, {"id": "gpt-3.5-turbo-[3]", "type": "Generator", "params": {"type": "Generator", "Model": "gpt-3.5-turbo", "Mode": "parallel", "Max Turn": 10}}, {"id": "evaluator-[2]", "type": "evaluator", "params": {"type": "evaluator", "Mode": "iterative", "Max Turn": 5}}];
+        const edges = [{"source": "input", "target": "gpt-3.5-turbo-[1]", "weight": 0}, {"source": "evaluator-[2]", "target": "gpt-3.5-turbo-[1]", "weight": 0}, {"source": "evaluator-[2]", "target": "output", "weight": 0}, {"source": "gpt-3.5-turbo-[3]", "target": "evaluator-[2]", "weight": 0}, {"source": "retriever-[4]", "target": "gpt-3.5-turbo-[3]", "weight": 0}, {"source": "gpt-3.5-turbo-[1]", "target": "retriever-[4]", "weight": 0}];
+        const colors = ['#B5C4B8', '#D3C0B6', '#A9B7C4', '#C4A9B7', '#B7C4A9'];
+        
+        const container = d3.select("#graph-container");
+        const width = container.node().offsetWidth;
+        const height = container.node().offsetHeight;
+        let currentGranularity = "Document-level"; // 添加在script顶部变量声明处
+        // 在script顶部添加
+        let currentSentenceIndex = null;
+        let currentDocValues = [];
+        // 添加全局变量
+        let currentThreshold = 0;
+
+        // 初始化滑块事件
+        d3.select("#threshold")
+    .on("input", function() {
+        currentThreshold = parseFloat(this.value);
+        d3.select("#threshold-value").text(currentThreshold.toFixed(2));
+        applyThresholdFilter();
+    });
+
+        // 添加阈值过滤函数
+        function applyThresholdFilter() {
+            d3.selectAll(".highlight-span").each(function() {
+                const rawValue = parseFloat(this.dataset.value);
+                const originalColor = this.dataset.originalColor; // 新增获取原始颜色
+                const shouldShow = rawValue >= currentThreshold;
+                
+                d3.select(this)
+                    .style("background", shouldShow ? originalColor : "white")
+                    .classed("filtered-out", !shouldShow);
+            });
+        }
+        function handleSpanClick(event, rawValue) {
+            event.stopPropagation();
+            
+            d3.select(".color-box")
+                .style("background", event.target.style.background)
+                .style("border-color", "#999");
+            
+            d3.select(".value-display")
+                .text(`Value: ${rawValue.toFixed(4)}`)
+                .style("color", "#333");
+        }
+        const svg = container.append("svg")
+            .attr("width", width)
+            .attr("height", height);
+
+       
+        svg.append("defs").append("marker")
+            .attr("id", "arrow")
+            .attr("viewBox", "0 -5 10 10")
+            .attr("refX", 32)
+            .attr("markerWidth", 8)
+            .attr("markerHeight", 8)
+            .attr("orient", "auto")
+            .append("path")
+            .attr("d", "M0,-4L8,0L0,4")
+            .attr("fill", "#7E8A97");
+
+        svg.append("rect")
+            .attr("width", width-2)
+            .attr("height", height-2)
+            .attr("x", 1)
+            .attr("y", 1)
+            .attr("rx", 12)
+            .attr("ry", 12)
+            .attr("fill", "none")
+            .attr("stroke", "#B5C4B8")
+            .attr("stroke-width", 2)
+            .lower(); 
+
+
+
+        const simulation = d3.forceSimulation(nodes)
+            .force("link", d3.forceLink(edges).id(d => d.id).distance(120))
+            .force("charge", d3.forceManyBody().strength(-400))
+            .force("collide", d3.forceCollide().radius(42))
+            .force("x", d3.forceX() 
+                .x(d => {
+                    if (d.id === 'input') return width * 0.1;   
+                    if (d.id === 'output') return width * 0.9;  
+                    return width / 2;         
+                })
+                .strength(0.1)) 
+            .force("y", d3.forceY(height/2).strength(0.05)) 
+            .force("center", null); 
+
+        const link = svg.selectAll(".link")
+            .data(edges)
+            .enter().append("line")
+            .attr("class", "link")
+            .attr("stroke", d => d.weight === 1 ? "green" : d.weight === -1 ? "red" : "black")
+            .attr("marker-end", "url(#arrow)")
+            .style("stroke-dasharray", d => d.weight === 0 ? "4 4" : null);
+
+        const node = svg.selectAll(".node")
+            .data(nodes)
+            .enter().append("g")
+            .attr("class", "node")
+            .call(d3.drag()
+                .on("start", dragstart)
+                .on("drag", dragging)
+                .on("end", dragend))
+            .on("mouseover", showTooltip)
+            .on("mouseout", hideTooltip);
+
+        node.append("rect")
+            .attr("width", 80)
+            .attr("height", 36)
+            .attr("x", -40)
+            .attr("y", -18)
+            .attr("fill", d => colors[d.type.length % colors.length])
+            .attr("stroke", "#7E8A97");
+
+        node.append("text")
+            .text(d => d.type)
+            .attr("dy", 0);
+
+        simulation.on("tick", () => {
+            link.attr("x1", d => d.source.x)
+                .attr("y1", d => d.source.y)
+                .attr("x2", d => d.target.x)
+                .attr("y2", d => d.target.y);
+            node.attr("transform", d => `translate(${d.x},${d.y})`);
+        });
+
+        const tooltip = d3.select("#tooltip");
+        function showTooltip(event, d) {
+            tooltip.transition().style("opacity", 0.9);
+            const params = Object.entries(d.params)
+                .filter(([k]) => k !== 'type')
+                .map(([k,v]) => `${k}: ${v}`)
+                .join('<br/>');
+            tooltip.html(`<strong>${d.type}</strong><br/>${params}`)
+                .style("left", (event.pageX + 15) + "px")
+                .style("top", (event.pageY - 15) + "px");
+        }
+        function hideTooltip() { tooltip.transition().style("opacity", 0); }
+
+      function formatDocumentText(d) {
+    const match = d.match(/Document \[([\d]+)\]\(Title:(.*?)\)(.*)/);
+    if (match) {
+      const number = match[1];
+      const title = match[2];
+      const content = match[3];
+      return `[${number}] <strong>${title}</strong>: ${content}`;
+    }
+    return d;
+  }
+        
+
+        function dragstart(event, d) {
+            if (!event.active) simulation.alphaTarget(0.3).restart();
+            d.fx = d.x;
+            d.fy = d.y;
+        }
+        function dragging(event, d) {
+            d.fx = event.x;
+            d.fy = event.y;
+        }
+        function dragend(event, d) {
+            if (!event.active) simulation.alphaTarget(0);
+            d.fx = null;
+            d.fy = null;
+        }
+        let allResults;
+               
+       
+        fetch('res_attr.json')
+        .then(response => response.json())
+        .then(data => {
+            allResults = data;
+            updateResult(0);
+        })
+        .catch(error => {
+            console.error('Error loading JSON file:', error);
+        });
+
+
+        function highlightDocsBySentence(sentenceIndex) {
+            
+            const currentResult = allResults[document.getElementById("result-select").value];
+
+            currentDocValues = currentResult.doc_level[sentenceIndex];
+            currentSentenceIndex = sentenceIndex;
+
+            if (currentGranularity === "Document-level") {
+            const docValues = currentResult.doc_level[sentenceIndex];
+            // 归一化处理
+            const maxVal = Math.max(...docValues);
+            const minVal = Math.min(...docValues);
+            const range = maxVal - minVal || 1; // 防止除零
+            
+            d3.selectAll(".doc-item")
+                .style("background", (d, j) => {
+                    const normalized = (docValues[j] - minVal) / range;
+                    return getColor(normalized);
+                });
+
+
+            } else {
+        const data = currentGranularity === "Span-level" 
+            ? currentResult.span_level[sentenceIndex]
+            : currentResult.word_level[sentenceIndex];
+
+        d3.selectAll(".doc-item").each(function(d, j) {
+            const rawText = d.text;
+            const formatted = formatDocumentText(rawText);
+            const matches = rawText.match(/Document \[([\d]+)\]\(Title:(.*?)\)(.*)/);
+            const offset = matches ? matches[0].length - matches[3].length : 0;
+
+            const spans = (data[j] || [])
+            const sorted = spans.slice().sort((a,b) => a[0] - b[0]);
+
+            const values = sorted.map(x => x[1]);
+            const minVal = Math.min(...values);
+            const maxVal = Math.max(...values);
+            const range = maxVal - minVal || 1;
+
+            let newContent = rawText;
+            let cumulativeShift = 0;
+
+            sorted.forEach((entry, i) => {
+                const idx = entry[0] || 0;
+                const val = entry[1] || 0;
+                
+                const start = idx;
+                const end = i < sorted.length-1 
+                    ? sorted[i+1][0]
+                    : rawText.length;
+
+                const color = d3.interpolateReds((val - minVal)/range);
+                const span = `<span class="highlight-span"  style="background:${color}"  data-original-color="${color}" data-value="${val}" onclick="handleSpanClick(event, ${val})">`;
+                const insertStart = start + cumulativeShift;
+                const insertEnd = end + cumulativeShift;
+
+                newContent = newContent.slice(0, insertStart) 
+                    + span
+                    + newContent.slice(insertStart, insertEnd)
+                    + "</span>"
+                    + newContent.slice(insertEnd);
+                cumulativeShift += span.length + "</span>".length;
+
+            });
+            
+            newContent = formatDocumentText(newContent)    
+            d3.select(this).select(".doc-content").html(newContent);
+            setTimeout(applyThresholdFilter, 0);
+        });
+    }
+}
+        
+        function updateResult(selectedIndex) {
+            const result = allResults[selectedIndex];
+            // 在updateResult函数开始添加
+            currentSentenceIndex = null;
+            currentDocValues = [];
+            d3.select(".color-box")
+                .style("background", "none")
+                .style("border-color", "#ddd");
+            d3.select(".value-display")
+                .text("Click document to show value")
+                .style("color", "#666");
+           
+// 修改updateResult函数中的doc-list部分
+        const docList = d3.select("#doc-list")
+            .html("")
+            .selectAll(".doc-item")
+            .data(result.doc_cache.map((d, j) => ({ 
+                text: d, 
+                index: j 
+            }))) // 绑定文档索引
+            .enter()
+            .append("div")
+            .classed("doc-item", true)
+            .html(d => `
+                <div class="doc-content">${formatDocumentText(d.text)}</div>
+            `)
+            .on("click", function(event, d) {
+                if (currentGranularity === "Document-level" && currentSentenceIndex !== null) {
+                    const rawValue = currentDocValues[d.index];
+                    const normalized = (rawValue - Math.min(...currentDocValues)) / 
+                        (Math.max(...currentDocValues) - Math.min(...currentDocValues) || 1);
+                    
+                    d3.select(".color-box")
+                        .style("background", getColor(normalized))
+                        .style("border-color", "#999");
+                    
+                    d3.select(".value-display")
+                        .text(`Value: ${rawValue.toFixed(4)}`)
+                        .style("color", "#333");
+             
+            } else {
+                // 阻止非文档级点击事件
+                event.stopPropagation();
+            }
+            });
+
+            currentThreshold = 0;
+            d3.select("#threshold").property("value", 0);
+            d3.select("#threshold-value").text("0.00");
+
+           
+            d3.select("#current-question").html(`❓ ${result.data.question}`);
+            d3.select("#current-answer").html(`📖 ${result.data.answer}`);
+  
+            d3.select("#output-box")
+                .html("")
+                .selectAll(".output-line")
+                .data(result.output.map((d, i) => ({ text: d, index: i }))) // 这里添加映射
+                .enter()
+                .append("div")
+                .classed("output-line", true)
+                .html(d => `
+                    <div class="output-text">${d.text}</div>
+                `)
+                .on("click", function(event, d) {
+                clearDocHighlights();
+                if (currentGranularity === "Document-level") {
+                    highlightDocsBySentence(d.index);
+                } else {
+                    highlightDocsBySentence(d.index);
+                }
+            });
+                
+        }
+
+            // 在updateResult函数之后添加
+        d3.select("#granularity").on("change", function() {
+            currentGranularity = this.value;
+            clearDocHighlights(); // 切换粒度时清除高亮
+            currentSentenceIndex = null;
+            currentDocValues = [];
+            applyThresholdFilter();
+            if (currentGranularity === "Document-level") {
+                // a: 隐藏 class 为 "filter-slider" 的元素
+                document.querySelector('.filter-slider').style.display = 'none';
+            } else {
+                // b: 显示 class 为 "filter-slider" 的元素
+                document.querySelector('.filter-slider').style.display = 'block'; // 或者其他合适的显示方式，如 'flex', 'inline', 等
+            }
+        });
+
+                // 清除高亮的函数
+        function clearDocHighlights() {
+            d3.selectAll(".doc-item").style("background", "none");
+            d3.selectAll(".doc-content span").each(function() {
+                const parent = this.parentNode;
+                parent.replaceChild(document.createTextNode(this.textContent), this);
+                parent.normalize();
+                d3.select(".color-box")
+                .style("background", "none")
+                .style("border-color", "#ddd");
+            d3.select(".value-display")
+                .text("Click span to show value")
+                .style("color", "#666");
+    });
+        }
+
+        // 颜色映射函数（归一化到红色系）
+        function getColor(value) {
+            const alpha = value * 0.8 + 0.2; // 保证最小可见度
+            return `rgba(255,50,50,${alpha})`;
+        }
+        function parseDocumentText(text) {
+            const match = text.match(/\[(\d+)\]\(Title:(.*?)\)(.*)/);
+            return {
+                number: match[1],
+                title: match[2],
+                content: match[3]
+            };
+        }
+
+
+        function getTextOffset(formattedHtml) {
+            const temp = document.createElement('div');
+            temp.innerHTML = formattedHtml;
+            return temp.textContent.length - temp.querySelector('strong').nextSibling.textContent.length;
+        }
+    </script>
+</body>
+</html>

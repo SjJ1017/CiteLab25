@@ -1,0 +1,1896 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>Pipeline Graph | Sliding Toys</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        * {
+            font-family: 'Contrail One', Arial, sans-serif;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #f5f7f9;
+            margin: 0;
+            padding: 20px;
+            color: #2c3e50;
+
+        }
+
+        input,
+        #message-box {
+            flex: 1;
+            background: #f8f9fa;
+            border: 2px solid #B5C4B8;
+            border-radius: 12px;
+            padding: 15px;
+            height: auto;
+            overflow: hidden;
+        }
+
+        #response-label {
+            margin-left: 50px;
+        }
+
+        #results-sent {
+            border: 1px solid #B5C4B8;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 10px;
+            background: #fff;
+            box-shadow: 0 2px 6px rgba(175, 189, 188, 0.1);
+        }
+
+        textarea {
+
+            border: 1px solid #B5C4B8;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 10px;
+            background: #fff;
+            box-shadow: 0 2px 6px rgba(175, 189, 188, 0.1);
+
+        }
+
+        #response {
+            width: 95%;
+            height: 40vh;
+
+            position: relative;
+            background: #f8f9fa;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            border: 2px solid #B5C4B8;
+            padding: 20px;
+            overflow: auto;
+        }
+
+        select {
+            padding: 8px;
+            border: 1px solid #B5C4B8;
+            border-radius: 4px;
+            background: #fff;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+            font-size: 16px;
+        }
+
+        .controlcontainer {
+            width: 95%;
+            margin: 20px auto;
+
+            position: relative;
+
+        }
+
+        .send-button,
+        .custom-button {
+            display: inline-block;
+            background-color: #76967d;
+            /* 按钮颜色 */
+            color: white;
+            /* 文字颜色 */
+            padding: 2px 4px;
+            /* 内边距 */
+            border-radius: 4px;
+            margin-left: 20px;
+            /* 圆角矩形 */
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .send-button:hover,
+        .custom-button:hover {
+            background-color: #B5C4B8;
+            /* 悬停时的颜色 */
+        }
+
+
+        .container {
+            width: 95%;
+            height: 40vh;
+            margin: 20px auto;
+            position: relative;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            border: 2px solid #B5C4B8;
+        }
+
+        .title {
+            font: 24px/1.5 'Arial', sans-serif;
+            color: #6b7b8c;
+            text-align: center;
+            padding: 12px 0;
+        }
+
+        .node rect {
+            rx: 8px;
+            ry: 8px;
+            stroke-width: 1.5;
+            user-select: none;
+            /* 禁止选中文本 */
+            cursor: pointer;
+        }
+
+        .node text {
+            font: 12px sans-serif;
+            pointer-events: none;
+            text-anchor: middle;
+            dominant-baseline: central;
+        }
+
+        .link {
+            fill: none;
+            stroke-width: 2;
+            stroke-opacity: 0.6;
+        }
+
+
+        .linkUp {
+            fill: none;
+            stroke-width: 2;
+            stroke-opacity: 0.6;
+        }
+
+        .linkDown {
+            fill: none;
+            stroke-width: 2;
+            stroke-opacity: 0.6;
+        }
+
+        .tooltip {
+            position: absolute;
+            padding: 8px;
+            background: #fff9ec;
+            border: 1px solid #ffd8a8;
+            border-radius: 4px;
+            box-shadow: 3px 3px 10px rgba(0, 0, 0, 0.1);
+            font: 12px/1.5 sans-serif;
+            color: #66512c;
+        }
+
+        .lower-container {
+            width: 95%;
+            height: 70vh;
+            margin: 20px auto;
+            display: flex;
+            gap: 20px;
+        }
+
+        .page-dots {
+            display: flex;
+            gap: 5px;
+            justify-content: center;
+            align-items: center;
+            user-select: none;
+            /* 禁止选中文本 */
+            cursor: pointer;
+        }
+
+        .page-dot,
+        .page-arrow-l,
+        .page-arrow-r {
+            user-select: none;
+            cursor: pointer;
+        }
+
+        #helper-container,
+        #response-container {
+            width: 95%;
+            margin: 20px auto;
+            display: flex;
+            gap: 20px;
+            flex-direction: column
+        }
+
+        .doc-panel,
+        .info-panel {
+            height: 70vh;
+            flex: 1;
+            background: #f8f9fa;
+            border: 2px solid #B5C4B8;
+            border-radius: 12px;
+            padding: 15px;
+        }
+
+        #helper-lower-container {
+            width: 95%;
+            flex-direction: row;
+            margin: 20px auto;
+            display: flex;
+            gap: 20px;
+        }
+
+        .node-lower-container {
+            height: 20vh;
+            width: 95%;
+            margin: 20px auto;
+            display: flex;
+            gap: 20px;
+        }
+
+        .node-info-panel {
+            overflow-y: auto;
+            flex: 1;
+            background: #f8f9fa;
+            border: 2px solid #B5C4B8;
+            border-radius: 12px;
+            padding: 15px;
+        }
+
+        #doc-list {
+            max-height: 90%;
+            overflow-y: auto;
+        }
+
+        .qa-box {
+            border-top: 2px solid #ecf0f1;
+            padding-top: 15px;
+            padding-bottom: 15px;
+            margin-bottom: 15px;
+            max-height: 80%;
+            overflow-y: auto;
+        }
+
+        .qa-question {
+            color: #2c3e50;
+            font-weight: 600;
+            margin-bottom: 12px;
+            max-height: 10%;
+            overflow-y: auto;
+        }
+
+        .qa-answer {
+            color: #34495e;
+            line-height: 1.6;
+        }
+
+
+        #api_key {
+            max-height: 10px;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+
+
+        #output-box {
+            border-top: 2px solid #ecf0f1;
+            padding-top: 15px;
+            max-height: 50%;
+            overflow-y: auto;
+        }
+
+        .config-item,
+        .input-item,
+        .output-item {
+            border: 1px solid #B5C4B8;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 10px;
+            background: #fff;
+            box-shadow: 0 2px 6px rgba(175, 189, 188, 0.1);
+
+        }
+
+        .doc-item {
+            border: 1px solid #B5C4B8;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 10px;
+            background: #fff;
+            box-shadow: 0 2px 6px rgba(175, 189, 188, 0.1);
+        }
+
+        .color-display {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-left: 20px;
+            margin-right: 20px;
+            width: 100px;
+
+            flex-shrink: 0;
+
+        }
+
+        #control_container {
+            display: flex;
+
+            justify-content: space-between;
+
+            align-items: center;
+
+            width: 100%;
+
+            height: 15%;
+
+        }
+
+
+
+        .color-box {
+            width: 24px;
+            height: 24px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        .value-display {
+            font-size: 0.9em;
+            min-width: 120px;
+            color: #666;
+        }
+
+
+        .sentence-box {
+            border: 1px solid #e0e7e9;
+            border-radius: 6px;
+            padding: 10px;
+            margin: 8px 0;
+            background: #f8fafb;
+            line-height: 1.5;
+        }
+
+        .output-line:hover {
+            background: #f0f0f0;
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            margin-top: 10px;
+            bottom: 10px;
+        }
+
+        .output-line {
+            border-left: 3px solid #B5C4B8;
+            margin: 6px 0;
+            cursor: pointer;
+            padding: 8px 12px;
+            background: #fdfdfd;
+            border-radius: 4px;
+        }
+
+        .highlight-span {
+            cursor: pointer;
+        }
+
+        .highlight-span:hover {
+            filter: brightness(1.1);
+        }
+
+        .filter-slider {
+            margin-top: 15px;
+            width: 80%;
+            flex: 1;
+
+            display: none;
+
+        }
+
+        /* 模态框背景 */
+        .modal {
+            display: none;
+            /* 初始隐藏 */
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+
+        /* 模态框内容 */
+        .modal-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            height: 75%;
+            width: 75%;
+            text-align: center;
+            overflow-y: auto;
+        }
+
+        /* 关闭按钮 */
+        .close {
+            cursor: pointer;
+            color: red;
+            font-size: 20px;
+            position: absolute;
+            top: 10px;
+            right: 15px;
+        }
+
+        .slider-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 0.9em;
+            color: #666;
+
+        }
+
+        #threshold {
+            width: 100%;
+
+            height: 4px;
+            background: #ddd;
+            border-radius: 2px;
+            outline: none;
+            margin-right: 15%;
+
+        }
+
+        #threshold::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            background: #ff4444;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Contrail+One&display=swap" rel="stylesheet">
+</head>
+
+<body>
+
+    <div id="graph-container" class="container"></div>
+    <!-- <button id="refresh-btn">Refresh</button> -->
+    <div id="tooltip" class="tooltip" style="opacity:0"></div>
+    <div class="node-lower-container">
+
+
+        <div class="node-info-panel" id="config-panel">
+            CONFIGS
+        </div>
+
+        <div id="invisible-panel" class="node-info-panel">
+            INPUT
+
+
+            <div id="input-panel">
+
+            </div>
+            <div class="pagination">
+                <span class="page-arrow-l" id="prev-page" style="display:none;">&#9664;</span>
+                <div class="page-dots"> </div>
+                <span class="page-arrow-r" id="next-page" style="display:none;">&#9654;</span>
+            </div>
+        </div>
+
+
+        <div id="invisible-panel-2" class="node-info-panel">
+            OUTPUT
+
+            <div id="output-panel">
+
+            </div>
+
+            <div class="pagination">
+                <span class="page-arrow-l" id="o-prev-page" style="display:none;">&#9664;</span>
+                <div class="page-dots"> </div>
+                <span class="page-arrow-r" id="o-next-page" style="display:none;">&#9654;</span>
+            </div>
+        </div>
+    </div>
+
+
+    <div class="lower-container">
+        <div class="doc-panel">
+            <h2>📚 Documents</h2>
+            <div id="doc-list"></div>
+        </div>
+
+        <div class="info-panel">
+            <div class="qa-box">
+                <h3>📝 Question</h3>
+                <div id="current-question"></div>
+                <h3>📖 Answer</h3>
+                <div id="current-answer"></div>
+                <h3>🔍 Output</h3>
+                <div id="output-box" class="output-box"></div>
+            </div>
+
+
+            <div class="control-box">
+                <label>Result：
+                    <select id="result-select" onchange="updateResult(this.value)">
+                        <OPTIONS>
+                    </select>
+                </label>
+                <label style="margin-left:20px">Granularity：
+                    <select id="granularity">
+                        <option>Document-level</option>
+                        <option>Span-level</option>
+                        <option>Word-level</option>
+                    </select>
+                </label>
+                <span class="send-button" id="send-to-helper">📤 Send to Assistant</span>
+                <span class="custom-button" id="custom">New +</span>
+                <div class="controlcontainer" id="control_container">
+                    <div class="color-display">
+                        <div class="value-display">Click to show value</div>
+                        <div class="color-box"></div>
+                    </div>
+
+                    <div class="filter-slider" style="display:none">
+                        <div class="slider-header">
+                            <span>Filter Threshold: </span>
+                            <span id="threshold-value">0.00</span>
+                        </div>
+                        <input type="range" id="threshold" min="0" max="1" step="0.01" value="0">
+                    </div>
+                </div>
+
+
+            </div>
+
+        </div>
+    </div>
+    <!-- 模态框 -->
+    <div class="modal" id="myModal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2 id="edit-title"></h2>
+            <div id="config-info"></div>
+        </div>
+    </div>
+    <div id="helper-lower-container">
+        <div id="helper-container">
+            <h3>Assistant</h3>
+
+            <div id="message-box">
+                <span>🔑 API Key: </span><input type="password" id="api_key"
+                    value="YOUR OPENAI KEY">
+                <br>
+                <span>Results: </span>
+                <div id="results-sent"></div>
+                <span>Your Specific Requirement</span>
+                <textarea rows="6" id="message"
+                    placeholder="Given the pipeline, which is a directed graph described using nodes and edges, and the datapoint provided, please generate an answer explaining the issues leading to the poor performance of this datapoint. Additionally, provide some advice for improvement, either in the pipeline design or other relevant areas. Important: Only provide specific advice based on the information provided in the pipeline and datapoint, and give advice that can solve similar issues in the future. Do not provide general advice that is not directly related to the pipeline or datapoint."
+                    style="min-height: 50px; resize: none; font-size: medium;width: 100%;"></textarea>
+                <br>
+                <span onclick="sendMessage()"
+                    style="background-color: #B5C4B8; padding: 5px; border-radius: 4px; color: white; cursor: pointer;"
+                    onmouseover="this.style.backgroundColor='#78907d'"
+                    onmouseout="this.style.backgroundColor='#B5C4B8'">Send</span>
+            </div>
+
+
+        </div>
+        <div id="response-container">
+            <h3 id="response-label">Response</h3>
+            <div id="response"></div>
+        </div>
+    </div>
+
+    <div id="result-message" style="display: none;"></div>
+    <!-- style="display: none;" -->
+    <script>
+
+        const nodes = <NODE_JS>;
+        const edges = <EDGE_JS>;
+        const modal = document.getElementById("myModal");
+        const closeBtn = document.querySelector(".close");
+        const colors = ['#B5C4B8', '#D3C0B6', '#A9B7C4', '#C4A9B7', '#B7C4A9'];
+
+        const container = d3.select("#graph-container");
+        const width = container.node().offsetWidth;
+        const height = container.node().offsetHeight;
+        currentInput = 0;
+
+        let currentGranularity = "Document-level";
+        let currentSimulation; // 保存当前模拟实例
+        let currentNodes = [...nodes]; // 初始数据副本
+        let currentEdges = [...edges]; // 初始数据副本
+        let currentSentenceIndex = null;
+        let currentDocValues = [];
+
+        let currentThreshold = 0;
+
+        const responseElement = document.getElementById('response');
+        const helperContainer = document.getElementById('helper-container');
+        responseElement.style.height = `${helperContainer.offsetHeight}px`;
+
+        d3.selectAll(".page-arrow-l").on("click", function () {
+            currentInput = currentInput - 1;
+            if (currentInput < 0) {
+                currentInput = 0;
+            }
+            d3.selectAll(".page-dots").selectAll(".page-dot")
+                .each(function (d, i) {
+                    d3.select(this).style("color", i === currentInput ? "black" : "gray");
+                });
+            updateInputOutput(allResults[document.getElementById("result-select").value]);
+        });
+        d3.selectAll(".page-arrow-r").on("click", function () {
+            currentInput = currentInput + 1;
+            maxInput = currentLogs.length - 1;
+            if (currentInput > maxInput) {
+                currentInput = maxInput;
+            }
+            d3.selectAll(".page-dots").selectAll(".page-dot")
+                .each(function (d, i) {
+                    d3.select(this).style("color", i === currentInput ? "black" : "gray");
+                });
+            updateInputOutput(allResults[document.getElementById("result-select").value]);
+        });
+
+        d3.select("#threshold").on("input", function () {
+            currentThreshold = parseFloat(this.value);
+            d3.select("#threshold-value").text(currentThreshold.toFixed(2));
+            applyThresholdFilter();
+        });
+
+        window.addEventListener("click", (e) => {
+            console.log(e.target);
+            if (e.target === modal) {
+                modal.style.display = "none";
+            }
+        });
+        // 点击关闭按钮隐藏模态框
+        closeBtn.addEventListener("click", () => {
+            modal.style.display = "none";
+        });
+
+        function applyThresholdFilter() {
+            d3.selectAll(".highlight-span").each(function () {
+                const rawValue = parseFloat(this.dataset.value);
+                const originalColor = this.dataset.originalColor;
+                const shouldShow = rawValue >= currentThreshold;
+
+                d3.select(this)
+                    .style("background", shouldShow ? originalColor : "white")
+                    .classed("filtered-out", !shouldShow)
+                    .style("color", shouldShow ? (rawValue > 0.8 ? '#ffffff' : '#000000') : '#000000')
+
+            });
+        }
+        function handleSpanClick(event, rawValue) {
+            event.stopPropagation();
+
+            d3.select(".color-box")
+                .style("background", event.target.style.background)
+                .style("border-color", "#999");
+
+            d3.select(".value-display")
+                .text(`Value: ${rawValue.toFixed(4)}`)
+                .style("color", "#333");
+        }
+
+        function createGraph(nodes, edges) {
+            // 如果已有模拟实例则停止
+            if (currentSimulation) currentSimulation.stop();
+
+            const svg = container.html("").append("svg")
+                .attr("width", width)
+                .attr("height", height);
+
+            svg.selectAll("*").remove();
+
+
+            svg.append("defs").append("marker")
+                .attr("id", "arrow")
+                .attr("viewBox", "0 -5 10 10")
+                .attr("refX", 32)
+                .attr("markerWidth", 8)
+                .attr("markerHeight", 8)
+                .attr("orient", "auto")
+                .append("path")
+                .attr("d", "M0,-4L8,0L0,4")
+                .attr("fill", "#7E8A97");
+
+            svg.append("rect")
+                .attr("width", width - 2)
+                .attr("height", height - 2)
+                .attr("x", 1)
+                .attr("y", 1)
+                .attr("rx", 12)
+                .attr("ry", 12)
+                .attr("fill", "none")
+                .attr("stroke", "#B5C4B8")
+                .attr("stroke-width", 2)
+                .lower();
+
+            console.log(nodes);
+            console.log(Array.isArray(nodes));
+
+
+
+            currentSimulation = d3.forceSimulation(nodes)
+                .force("link", d3.forceLink(edges).id(d => d.id).distance(120))
+                .force("charge", d3.forceManyBody().strength(-400))
+                .force("collide", d3.forceCollide().radius(42))
+                .force("x", d3.forceX()
+                    .x(d => {
+                        if (d.id === 'input') return width * 0.1;
+                        if (d.id === 'output') return width * 0.9;
+                        return width / 2;
+                    })
+                    .strength(0.1))
+                .force("y", d3.forceY(height / 2).strength(0.05))
+                .force("center", null);
+
+    const link = svg.selectAll(".link")
+                .data(edges)
+                .enter().append("line")
+                .attr("class", "link")
+                .attr("stroke", d => d.weight === 1 ? "green" : d.weight === -1 ? "red" : "black")
+                .attr("marker-end", "url(#arrow)")
+                .style("stroke-dasharray", d => d.weight === 0 ? "4 4" : null)
+                .on("mouseover", function () {
+                    d3.select(this).style("stroke", "lightgray");
+                })
+                .on("mouseout", function () {
+                    d3.select(this).style("stroke", d => d.weight === 1 ? "green" : d.weight === -1 ? "red" : "black");
+                })
+                .on("click", function (event, d) {
+                    editAndUpdate(`<deletedestination>${d.target.id}</deletedestination>`, d.source.id)
+                    repaint()
+                });
+                
+    const linkUp = svg.selectAll(".linkUp")
+                .data(edges.filter(d => {
+                    console.log(nodes);
+                    console.log(d.target.id);
+                    console.log(d.target.params.Mode);
+                    return d.target.params.Mode === "parallel" ;
+                }))
+                .enter().append("line")
+                .attr("class", "linkUp")
+                .attr("stroke", d => d.weight === 1 ? "green" : d.weight === -1 ? "red" : "black")
+                .attr("marker-end", "url(#arrow)")
+                .style("stroke-dasharray", d => d.weight === 0 ? "4 4" : null)
+                .on("mouseover", function () {
+                    d3.select(this).style("stroke", "lightgray");
+                })
+                .on("mouseout", function () {
+                    d3.select(this).style("stroke", d => d.weight === 1 ? "green" : d.weight === -1 ? "red" : "black");
+                })
+                .on("click", function (event, d) {
+                    editAndUpdate(`<deletedestination>${d.target.id}</deletedestination>`, d.source.id)
+                    repaint()
+                });
+
+    const linkDown = svg.selectAll(".linkDown")
+                .data(edges.filter(d => {
+                    return d.target.params.Mode === "parallel" ;
+                }))
+                .enter().append("line")
+                .attr("class", "linkDown")
+                .attr("stroke", d => d.weight === 1 ? "green" : d.weight === -1 ? "red" : "black")
+                .attr("marker-end", "url(#arrow)")
+                .style("stroke-dasharray", d => d.weight === 0 ? "4 4" : null)
+                .on("mouseover", function () {
+                    d3.select(this).style("stroke", "lightgray");
+                })
+                .on("mouseout", function () {
+                    d3.select(this).style("stroke", d => d.weight === 1 ? "green" : d.weight === -1 ? "red" : "black");
+                })
+                .on("click", function (event, d) {
+                    editAndUpdate(`<deletedestination>${d.target.id}</deletedestination>`, d.source.id)
+                    repaint()
+                });
+
+
+            /* 
+                    d3.select("#graph-container").on("click", function () {
+                        const currentResult = allResults[document.getElementById("result-select").value];
+                        currentLogsAll = currentResult.log;
+                        currentLogs = currentResult.log;
+                        currentLogsIndices = currentLogs.map(l => currentLogsAll.indexOf(l));
+            
+                        d3.select("#config-panel")
+                                .html("CONFIGS")
+                                .selectAll(".config-item")
+                                .data(nodes.map(node => [node.type, node.params.Model || "N/A"]))
+                                .enter()
+                                .append("div")
+                                .classed("config-item", true)
+                                .html(d => `<strong>${d[0]}</strong><div>${promptVis(d[1])}</div>`)
+            
+            
+                        const pagination = d3.selectAll(".page-dots");
+            
+                            pagination.each(function () {
+                                d3.select(this).html("")
+                                    .selectAll(".page-dot")
+                                    .data(d3.range(currentLogs.length))
+                                    .enter()
+                                    .append("div")
+                                    .classed("page-dot", true)
+                                    .classed("active", (d, i) => i === currentInput)
+                                    .html("&#9679;")
+                                    .style("color", (d, i) => i === currentInput ? "black" : "gray")
+                                    .on("click", (event, i) => {
+                                        
+                                        console.log(i);
+                                        currentInput = i;
+                                        updateInputOutput(currentResult);
+                                        d3.selectAll(".page-dots").selectAll(".page-dot")
+                                            .each(function (d, i) {
+                                                d3.select(this).style("color", i === currentInput ? "black" : "gray");
+                                            });
+                                    });
+                            });
+            
+                            updateInputOutput(currentResult);
+                    });
+            */
+
+            const node = svg.selectAll(".node")
+                .data(nodes)
+                .enter().append("g")
+                .attr("class", "node")
+                .call(d3.drag()
+                    .on("start", dragstart)
+                    .on("drag", dragging)
+                    .on("end", dragend))
+                .on("mouseover", showTooltip)
+                .on("mouseout", hideTooltip)
+                .on("click", function (event, d) {
+                    if (d.id === 'input') {
+                        return;
+                    }
+                    if (d.id === 'output') {
+                        return;
+                    }
+                    const currentResult = allResults[document.getElementById("result-select").value];
+                    currentLogsAll = currentResult.log;
+                    currentLogs = currentResult.log.filter(l => l.startsWith(d.id));
+                    currentLogsIndices = currentLogs.map(l => currentLogsAll.indexOf(l));
+                    const module_name = d.id
+
+                    d3.select("#config-panel")
+                        .html("CONFIGS")
+                        .selectAll(".config-item")
+                        .data(Object.entries(d.params))
+                        .enter()
+                        .append("div")
+                        .classed("config-item", true)
+                        .html(d => `<strong>${d[0]}</strong><div>${promptVis(d[1])}</div>`)
+                        .on('mouseover', function () {
+                            d3.select(this).style("background-color", "#f0f0f0");
+                        })
+                        .on('mouseout', function () {
+                            d3.select(this).style("background-color", "white");
+                        })
+                        .on('click', function (event, d) {
+                            d3.select("#myModal") // 选择模态框
+                                .style("display", "block"); // 显示模态框
+
+                            d3.select("#edit-title").text(d[0]);
+                            getConfigForDisplay(module_name, d[0]).then(result => {
+                                if (d[0].toLowerCase() === "prompt") {
+                                    template = result.prompt_info.template; // 正确解析 JSON 数据
+                                    components = result.prompt_info.components;
+                                    selfPrompt = result.self_info
+                                    console.log(components)
+                                    d3.select("#config-info")
+                                        .html("")
+                                        .append("div")
+                                        .classed("config-paragraph", true)
+                                        .style("border", "1px solid #ccc")
+                                        .attr("contenteditable", "true")
+                                        .style("padding", "10px")
+                                        .style("margin", "10px")
+                                        .style("border-radius", "5px")
+                                        .classed("config-paragraph", true)
+                                        .html(`<p>${template
+                                            .replace(/<([^<>]+)>/g, ' <span style="background-color: gray; border-radius: 5px; padding: 2px; color: white">$1</span> ')}</p>`
+                                            .replace(/\n/g, '<br>'));
+
+                                    d3.select("#config-info")
+                                        .append("div")
+                                        .style("border", "1px solid #ccc")
+                                        .style("padding", "10px")
+                                        .style("border-radius", "5px")
+                                        .style("margin", "10px")
+                                        .attr("contenteditable", "true")
+                                        .classed("components-container", true)
+                                        .selectAll(".component-item")
+                                        .data(Object.entries(components))
+                                        .enter()
+                                        .append("div")
+                                        .classed("component-item", true)
+                                        .html(d => `
+                                    <div class="component-key" style="font-weight: bold; margin-bottom: 5px;"><span style="background-color: gray; border-radius: 5px; padding: 2px; color: white">${d[0]}</span></div>
+                                    <div class="component-value">${d[1].replace(/\n/g, '<br>')
+                                                .replace(/{([^<>]+)}/g, ' <span style="background-color: red; border-radius: 5px; padding: 2px; color: white">$1</span> ')}</div><br>
+                                `);
+
+                                    d3.select("#config-info")
+                                        .append("div")
+                                        .style("border", "1px solid #ccc")
+                                        .attr("contenteditable", "true")
+                                        .style("padding", "10px")
+                                        .style("border-radius", "5px")
+                                        .style("margin", "10px")
+                                        .classed("self-info-container", true)
+                                        .selectAll(".self-info-item")
+                                        .data(Object.entries(selfPrompt))
+                                        .enter()
+                                        .append("div")
+                                        .classed("self-info-item", true)
+                                        .html(d => `
+                                    <div class="component-key" style="font-weight: bold; margin-bottom: 5px;"><span style="background-color: red; border-radius: 5px; padding: 2px; color: white">${d[0]}</span></div>
+                                    <div class="component-value">${d[1].replace(/\n/g, '<br>')}</div><br>
+                                `);
+
+                                    d3.select("#config-info")
+                                        .append("button")
+                                        .style("border", "1px solid #ccc")
+                                        .style("padding", "10px")
+                                        .style("border-radius", "5px")
+                                        .style("margin", "10px")
+                                        .style("background-color", "#4CAF50")
+                                        .style("color", "white")
+                                        .style("cursor", "pointer")
+                                        .text("SAVE")
+                                        .on("click", (event, d) => {
+                                            const tem = document.querySelector(".config-paragraph").innerHTML;
+                                            const com = document.querySelector(".components-container").innerHTML;
+                                            const sel = document.querySelector(".self-info-container").innerHTML;
+
+                                            const combinedContent = tem + com + sel;
+                                            console.log(combinedContent);
+                                            modal.style.display = "none";
+                                            editAndUpdate(combinedContent, module_name)
+                                            repaint()
+
+                                        });
+                                }
+                                else if (d[0].toLowerCase() === "destination") {
+                                    d3.select("#config-info")
+                                        .html("")
+                                        .append("div")
+                                        .style("border", "1px solid #ccc")
+                                        .style("padding", "10px")
+                                        .style("border-radius", "5px")
+                                        .style("margin", "10px")
+                                        .attr("contenteditable", "true")
+                                        .html(result.destination);
+
+                                    d3.select("#config-info")
+                                        .append("div")
+                                        .classed("change-to-container", true)
+                                        .html("<strong>Change to:</strong>")
+                                        .style("margin-top", "10px")
+                                        .style("padding", "10px")
+                                        .style("border", "1px solid #ccc")
+                                        .style("border-radius", "5px")
+                                        .style("background-color", "#f9f9f9")
+                                        .selectAll(".node-id-item")
+                                        .data(nodes.map(node => node.id))
+                                        .enter()
+                                        .append("div")
+                                        .classed("node-id-item", true)
+                                        .style("cursor", "pointer")
+                                        .style("margin", "5px 0")
+                                        .style("padding", "5px")
+                                        .style("border-radius", "3px")
+                                        .style("background-color", "#e0e0e0")
+                                        .style("transition", "background-color 0.3s")
+                                        .text(d => d)
+                                        .on("mouseover", function () {
+                                            d3.select(this).style("background-color", "#d0d0d0");
+                                        })
+                                        .on("mouseout", function () {
+                                            d3.select(this).style("background-color", "#e0e0e0");
+                                        })
+                                        .on("click", function (event, d) {
+                                            
+                                            console.log(d);
+                                            const selectedNode = nodes.find(node => node.id === d);
+                                            currentParams = selectedNode.params
+                                            if (!selectedNode.params.Prompt) {
+                                                editAndUpdate('<destination>' + d + '</destination><prompt_key>None</prompt_key>', module_name)
+                                                repaint()
+                                                modal.style.display = "none";
+                                                return;
+                                            }
+                                            const promptKeys = selectedNode.params.Prompt.match(/{([^{}]+)}/g).map(key => key.replace(/[{}]/g, ''));
+                                            if (promptKeys.length === 0) {
+                                                console.log("No prompt keys found");
+                                                editAndUpdate('<destination>' + d + '</destination><prompt_key>None</prompt_key>', module_name)
+                                                repaint()
+                                                modal.style.display = "none";
+                                            } else {
+                                            d3.select("#config-info")
+                                                .append("div")
+                                                .classed("prompt-keys-container", true)
+                                                .html("<strong>Select Prompt Key:</strong>")
+                                                .style("margin-top", "10px")
+                                                .style("padding", "10px")
+                                                .style("border", "1px solid #ccc")
+                                                .style("border-radius", "5px")
+                                                .style("background-color", "#f9f9f9")
+                                                .selectAll(".prompt-key-item")
+                                                .data(["None", ...promptKeys])
+                                                .enter()
+                                                .append("div")
+                                                .classed("prompt-key-item", true)
+                                                .style("cursor", "pointer")
+                                                .style("margin", "5px 0")
+                                                .style("padding", "5px")
+                                                .style("border-radius", "3px")
+                                                .style("background-color", "#e0e0e0")
+                                                .style("transition", "background-color 0.3s")
+                                                .text(d => d)
+                                                .on("mouseover", function () {
+                                                    d3.select(this).style("background-color", "#d0d0d0");
+                                                })
+                                                .on("mouseout", function () {
+                                                    d3.select(this).style("background-color", "#e0e0e0");
+                                                })
+                                                .on("click", function (event, key) {
+                                                    console.log(key);
+                                                    editAndUpdate('<destination>' + d + '</destination><prompt_key>' + key + '</prompt_key>', module_name)
+                                                    repaint()
+                                                    modal.style.display = "none";
+                                                });
+                                            }
+
+                                        });
+
+                                    d3.select(".change-to-container")
+                                        .append("div")
+                                        .classed("new-node-item", true)
+                                        .style("cursor", "pointer")
+                                        .style("margin", "5px 0")
+                                        .style("padding", "5px")
+                                        .style("border-radius", "3px")
+                                        .style("background-color", "#e0e0e0")
+                                        .style("transition", "background-color 0.3s")
+                                        .text("New Node")
+                                        .on("mouseover", function () {
+                                            d3.select(this).style("background-color", "#d0d0d0");
+                                        })
+                                        .on("mouseout", function () {
+                                            d3.select(this).style("background-color", "#e0e0e0");
+                                        })
+                                        .on("click", function (event, d) {
+                                            d3.select("#config-info")
+                                                .append("div")
+                                                .classed("new-node-params", true)
+                                                .html(`
+                                                    <label for="model_type">Model Type:</label>
+                                                    <input type="text" id="model_type" name="model_type"><br>
+                                                    <label for="model">Model:</label>
+                                                    <input type="text" id="model" name="model"><br>
+                                                    <label for="Prompt Key">Prompt Key</label>
+                                                    <input type="text" id="key" name="Prompt Key"><br>
+                                                    <button id="save-new-node">Save</button>
+                                                `);
+
+
+                                            d3.select("#save-new-node").on("click", function () {
+                                                const modelType = document.getElementById("model_type").value;
+                                                const model = document.getElementById("model").value;
+                                                const key = document.getElementById("key").value;
+                                                editAndUpdate(`<model_type>${modelType}</model_type><model>${model}</model><prompt_key>${key}</prompt_key>`, module_name)
+                                                repaint();
+                                                modal.style.display = "none";
+                                            });
+                                            
+
+
+                                        });
+                                }
+                                else {
+                                    console.log(result);
+                                    d3.select("#config-info")
+                                        .html("")
+                                        .append("div")
+                                        .style("border", "1px solid #ccc")
+                                        .style("padding", "10px")
+                                        .style("border-radius", "5px")
+                                        .style("margin", "10px")
+                                        .attr("contenteditable", "true")
+                                        .classed("config-item-edit", true)
+                                        .html(result);
+                                    d3.select("#config-info")
+                                        .append("button")
+                                        .style("border", "1px solid #ccc")
+                                        .style("padding", "10px")
+                                        .style("border-radius", "5px")
+                                        .style("margin", "10px")
+                                        .style("background-color", "#4CAF50")
+                                        .style("color", "white")
+                                        .style("cursor", "pointer")
+                                        .text("SAVE")
+                                        .on("click", (event, d) => {
+                                            const content = document.querySelector(".config-item-edit").innerHTML;
+                                            console.log(content);
+                                            modal.style.display = "none";
+                                            editAndUpdate('<to_head>' + content + '</to_head>', module_name)
+                                            repaint()
+
+                                        });
+                                }
+                            
+                            })
+
+                        });
+
+                    //.html(d => `<div class="config-text">${promptVis(d.Prompt).replace(/\n/g, '<br>')}</div>`)
+
+
+                    const pagination = d3.selectAll(".page-dots");
+
+                    console.log(currentLogs.length);
+                    console.log(currentLogs);
+                    pagination.each(function () {
+                        d3.select(this).html("")
+                            .selectAll(".page-dot")
+                            .data(d3.range(currentLogs.length))
+                            .enter()
+                            .append("div")
+                            .classed("page-dot", true)
+                            .classed("active", (d, i) => i === currentInput)
+                            .html("&#9679;")
+                            .style("color", (d, i) => i === currentInput ? "black" : "gray")
+                            .on("click", (event, i) => {
+
+                                console.log(i);
+                                currentInput = i;
+                                updateInputOutput(currentResult);
+                                d3.selectAll(".page-dots").selectAll(".page-dot")
+                                    .each(function (d, i) {
+                                        d3.select(this).style("color", i === currentInput ? "black" : "gray");
+                                    });
+                            });
+                    });
+
+                    d3.selectAll(".page-arrow-l, .page-arrow-r")
+                        .style("display", "block");
+                    updateInputOutput(currentResult);
+                })
+
+            // 重启模拟
+            currentSimulation.nodes(nodes);
+            currentSimulation.force("link").links(edges);
+            currentSimulation.alpha(1).restart();
+
+
+            node.append("rect")
+                .attr("width", 80)
+                .attr("height", 36)
+                .attr("x", -40)
+                .attr("y", -18)
+                .attr("fill", d => colors[d.type.length % colors.length])
+                .attr("stroke", "#7E8A97");
+
+            node.append("text")
+                .text(d => d.type)
+                .attr("dy", 0);
+
+            currentSimulation.on("tick", () => {
+                link.attr("x1", d => d.source.x)
+                    .attr("y1", d => d.source.y)
+                    .attr("x2", d => d.target.x)
+                    .attr("y2", d => d.target.y);
+                linkUp.attr("x1", d => d.source.x)
+                    .attr("y1", d => d.source.y + 10)
+                    .attr("x2", d => d.target.x)
+                    .attr("y2", d => d.target.y + 10);
+                linkDown.attr("x1", d => d.source.x)
+                    .attr("y1", d => d.source.y - 10)
+                    .attr("x2", d => d.target.x)
+                    .attr("y2", d => d.target.y - 10);
+                node.attr("transform", d => `translate(${d.x},${d.y})`);
+
+                
+            });
+
+            const tooltip = d3.select("#tooltip");
+            function showTooltip(event, d) {
+                tooltip.transition().style("opacity", 0.9);
+                const params = Object.entries(d.params)
+                    .filter(([k]) => k !== 'type')
+                    .map(([k, v]) => `${k}: ${v}`)
+                    .join('<br/>');
+                tooltip.html(`<strong>${d.id}</strong><br/>`)
+                    .style("left", (event.pageX + 15) + "px")
+                    .style("top", (event.pageY - 15) + "px");
+            }
+            function hideTooltip() { tooltip.transition().style("opacity", 0); }
+
+
+
+            function dragstart(event, d) {
+                if (!event.active) currentSimulation.alphaTarget(0.3).restart();
+                d.fx = d.x;
+                d.fy = d.y;
+            }
+            function dragging(event, d) {
+                d.fx = event.x;
+                d.fy = event.y;
+            }
+            function dragend(event, d) {
+                if (!event.active) currentSimulation.alphaTarget(0);
+                d.fx = null;
+                d.fy = null;
+            }
+
+        }
+
+
+        createGraph(nodes, edges);
+        repaint();
+
+        function parseInput(input) {
+            try {
+                // 先确保输入是合法 JSON
+                const sanitizedInput = input
+                    .replace(/"/g, '\\"') // 先转义所有双引号
+                    .replace(/\\\\"/g, '"') // 但保留正确的 JSON 引号
+                    .replace(/'\[/g, '[')  // 处理单引号包裹的 JSON 数组
+                    .replace(/\]'/g, ']')
+                    .replace(/'/g, '"');  // 把所有单引号变成 JSON 标准的双引号
+
+
+                // 解析 JSON
+                const parsed = JSON.parse(sanitizedInput);
+
+
+                // 确保是字符串数组
+                if (Array.isArray(parsed) && parsed.every(item => typeof item === 'string')) {
+                    return parsed;
+                }
+
+                // 如果是字典且只包含一个元素
+                if (typeof parsed === 'object' && parsed !== null && Object.keys(parsed).length === 1) {
+                    const key = Object.keys(parsed)[0];
+                    const value = parsed[key];
+                    return [`<span style="background-color: lightgray; border-radius: 5px; padding: 2px;">${key}</span>: ${value}`];
+                }
+            } catch (e) {
+
+            }
+            return [input.replace(/\n/g, '<br>')];
+        }
+
+
+        function formatDocumentText(d) {
+            const match = d.match(/Document \[([\d]+)\]\(Title:(.*?)\)(.*)/);
+            if (match) {
+                const number = match[1];
+                const title = match[2];
+                const content = match[3];
+                console.log(content);
+                console.log(title);
+                return `[${number}] <strong>${title}</strong>: ${content}`;
+            }
+            return d;
+        }
+
+        function updateInputOutput(currentResult) {
+
+            currentInputGlobal = currentLogsIndices[currentInput];
+            currentInputGlobalPrev = currentInputGlobal - 1;
+            if (currentInputGlobalPrev >= 0) {
+                const inputList = d3.select("#input-panel")
+                    .html("")
+                    .selectAll(".input-item")
+                    .data(parseInput(currentLogsAll[currentInputGlobalPrev].split(':').slice(1).join(':')))
+                    .enter()
+                    .append("div")
+                    .classed("input-item", true)
+                    .html(d => `
+                <div class="input-text">${d}</div>
+            `)
+            } else {
+                question = currentResult.data.question;
+                docs = currentResult.data.docs;
+                combined = [question, ...docs];
+
+                d3.select("#input-panel").html("").selectAll(".input-item")
+                    .data(combined)
+                    .enter()
+                    .append("div")
+                    .classed("input-item", true)
+                    .html(d => `
+                <div class="input-text">${d}</div>
+            `)
+            }
+
+            const outputList = d3.select("#output-panel")
+                .html("")
+                .selectAll(".output-item")
+                .data(parseInput(currentLogs[currentInput].split(':').slice(1).join(':')))
+                .enter()
+                .append("div")
+                .classed("output-item", true)
+                .html(d => `
+                <div class="output-text">${d}</div>
+            `)
+
+
+
+        }
+
+        function promptVis(rawValue) {
+            if (typeof rawValue === 'number') {
+                return rawValue;
+            }
+            if (typeof rawValue !== 'string') {
+                return '';
+            }
+            const formattedString = rawValue.replace(/{([^}]+)}/g, '<span style="background-color: lightgray; border-radius: 5px; padding: 2px;">$1</span>').replace(/\n/g, '<br>');
+            return formattedString;
+        }
+
+
+
+        fetch('<FILE_PATH>')
+        .then(response => response.json())
+        .then(data => {
+            allResults = data;
+            updateResult(0);
+        })
+        .catch(error => {
+            console.error('Error loading JSON file:', error);
+        });
+
+        const fixedResultsCount = allResults.length;
+
+        function highlightDocsBySentence(sentenceIndex) {
+
+            const currentResult = allResults[document.getElementById("result-select").value];
+
+
+            currentSentenceIndex = sentenceIndex;
+
+            if (currentGranularity === "Document-level") {
+                currentDocValues = currentResult.doc_level[sentenceIndex];
+                const docValues = currentResult.doc_level[sentenceIndex];
+
+                const maxVal = Math.max(...docValues);
+                const minVal = Math.min(...docValues);
+                const range = maxVal - minVal || 1;
+
+                d3.selectAll(".doc-item")
+                    .style("background", (d, j) => {
+                        const normalized = (docValues[j] - minVal) / range;
+                        return getColor(normalized);
+                    });
+
+
+            } else {
+                const data = currentGranularity === "Span-level"
+                    ? currentResult.span_level[sentenceIndex]
+                    : currentResult.word_level[sentenceIndex];
+
+                d3.selectAll(".doc-item").each(function (d, j) {
+                    const rawText = d.text;
+                    const formatted = formatDocumentText(rawText);
+                    const matches = rawText.match(/Document \[([\d]+)\]\(Title:(.*?)\)(.*)/);
+                    const offset = matches ? matches[0].length - matches[3].length : 0;
+
+                    const spans = (data[j] || [])
+                    const sorted = spans.slice().sort((a, b) => a[0] - b[0]);
+
+                    const values = sorted.map(x => x[1]);
+                    const minVal = Math.min(...values);
+                    const maxVal = Math.max(...values);
+                    const range = maxVal - minVal || 1;
+
+                    let newContent = rawText;
+                    let cumulativeShift = 0;
+
+                    sorted.forEach((entry, i) => {
+                        const idx = entry[0] || 0;
+                        const val = entry[1] || 0;
+
+                        const start = idx;
+                        const end = i < sorted.length - 1
+                            ? sorted[i + 1][0]
+                            : rawText.length;
+
+                        const color = d3.interpolateReds(val);
+                        const span = `<span class="highlight-span" style="background:${color}; color:${val > 0.8 ? '#ffffff' : '#000000'}" data-original-color="${color}" data-value="${val}" onclick="handleSpanClick(event, ${val})">`;
+                        const insertStart = start + cumulativeShift;
+                        const insertEnd = end + cumulativeShift;
+
+                        newContent = newContent.slice(0, insertStart)
+                            + span
+                            + newContent.slice(insertStart, insertEnd)
+                            + "</span>"
+                            + newContent.slice(insertEnd);
+                        cumulativeShift += span.length + "</span>".length;
+
+                    });
+
+                    newContent = formatDocumentText(newContent)
+                    d3.select(this).select(".doc-content").html(newContent);
+                    setTimeout(applyThresholdFilter, 0);
+                });
+            }
+        }
+
+        function updateResult(selectedIndex) {
+            resultsCount = allResults.length;
+
+
+            const result = allResults[selectedIndex];
+
+            currentSentenceIndex = null;
+            currentDocValues = [];
+            d3.select(".color-box")
+                .style("background", "none")
+                .style("border-color", "#ddd");
+            d3.select(".value-display")
+                .text("Click to show value")
+                .style("color", "#666");
+
+
+            const docList = d3.select("#doc-list")
+                .html("")
+                .selectAll(".doc-item")
+                .data(result.doc_cache.map((d, j) => ({
+                    text: d,
+                    index: j
+                })))
+                .enter()
+                .append("div")
+                .classed("doc-item", true)
+                .html(d => `
+                <div class="doc-content">${formatDocumentText(d.text)}</div>
+            `)
+                .on("click", function (event, d) {
+                    if (currentGranularity === "Document-level" && currentSentenceIndex !== null) {
+                        const rawValue = currentDocValues[d.index];
+                        const normalized = (rawValue - Math.min(...currentDocValues)) /
+                            (Math.max(...currentDocValues) - Math.min(...currentDocValues) || 1);
+
+                        d3.select(".color-box")
+                            .style("background", getColor(normalized))
+                            .style("border-color", "#999");
+
+                        d3.select(".value-display")
+                            .text(`Value: ${rawValue.toFixed(4)}`)
+                            .style("color", "#333");
+
+                    } else {
+
+                        event.stopPropagation();
+                    }
+                });
+
+            currentThreshold = 0;
+            d3.select("#threshold").property("value", 0);
+            d3.select("#threshold-value").text("0.00");
+
+
+            d3.select("#current-question").html(`${result.data.question}`);
+            d3.select("#current-answer").html(`${result.data.answer}`);
+
+            d3.select("#output-box")
+                .html("")
+                .selectAll(".output-line")
+                .data(result.output.map((d, i) => ({ text: d, index: i })))
+                .enter()
+                .append("div")
+                .classed("output-line", true)
+                .html(d => `
+                    <div class="output-text">${d.text}</div>
+                `)
+                .on("click", function (event, d) {
+                    clearDocHighlights();
+                    d3.selectAll(".output-line")
+                        .style("font-weight", null)
+                        .style("background-color", null);
+                    if (currentGranularity === "Document-level") {
+                        highlightDocsBySentence(d.index);
+                        d3.select(this)
+                            .style("font-weight", "bold")
+                            .style("background-color", "#f0f0f0");
+                    } else {
+                        highlightDocsBySentence(d.index);
+                        d3.select(this)
+                            .style("font-weight", "bold")
+                            .style("background-color", "#f0f0f0");
+                    }
+                });
+
+        }
+
+
+
+        d3.select("#custom").on("click", function (event, d) {
+            d3.select(".control-box").style("display", "none");
+            const docList = d3.select("#doc-list")
+                .html("")
+                .style("display", "flex")
+                .style("flex-direction", "column")
+                .style("position", "relative");
+
+            // 添加按钮
+            const button = docList.append("div")
+                .classed("custom-button", true)
+                .text("New Document")
+                .style("margin-top", "auto") // 让按钮始终在底部
+                .style("color", "white")
+                .style("padding", "10px")
+                .style("text-align", "center")
+                .style("cursor", "pointer");
+
+            button.on("click", function () {
+                docList.insert("div", ".custom-button") // 在按钮上方插入
+                    .classed("doc-item", true)
+                    .style("display", "flex")
+                    .style("flex-direction", "column")
+                    .html(`
+                <textarea class="doc-content-title" placeholder="Title" rows="1"></textarea>
+                <textarea class="doc-content-text" placeholder="Content"></textarea>
+            `);
+
+            });
+
+            d3.select("#current-question").html('').style("display", "flex")
+                .style("flex-direction", "column")
+                .append("textarea")
+                .attr("id", "current-question-text")
+                .attr("rows", 1)
+                .attr("placeholder", "Question");
+
+            d3.select("#current-answer").html('').style("display", "flex")
+                .style("flex-direction", "column")
+                .append("textarea")
+                .attr("id", "current-answer-text")
+                .attr("rows", 5)
+                .attr("placeholder", "Answer");
+
+            d3.select("#output-box")
+                .html("")
+                .append("button")
+                .text("RUN")
+                .on("click", async function () {
+                    const data = getDataFromCustomInput();
+                    console.log(data);
+                    const output = await getOutput(data);
+                    console.log(output);
+                    allResults.push(output);
+                    d3.select("#result-select")
+                        .html("")
+                        .selectAll("option")
+                        .data(allResults.map((d, i) => ({ text: i >= fixedResultsCount ? `Custom ${i + 1}` : `Result ${i + 1}`, index: i })))
+                        .enter()
+                        .append("option")
+                        .attr("value", d => d.index)
+                        .text(d => d.text);
+                    updateResult(allResults.length - 1);
+                    d3.select("#result-select").property("value", allResults.length - 1);
+                    d3.select(".control-box").style("display", "block");
+                });
+
+
+        })
+
+        function getDataFromCustomInput() {
+
+            const docItems = d3.selectAll(".doc-item").nodes();
+            const docCache = docItems.map(node => {
+                const title = node.querySelector(".doc-content-title").value;
+                const content = node.querySelector(".doc-content-text").value;
+                return `(Title: ${title})${content}`;
+            });
+
+            const question = document.getElementById("current-question-text").value;
+            const answer = document.getElementById("current-answer-text").value;
+
+
+            return {
+                docs: docCache,
+                question: question,
+                answer: answer
+            };
+        }
+
+        d3.select("#send-to-helper").on("click", function (event, d) {
+            const dataPoint = formatDataPoint() || [];
+            const currentIndex = parseInt(document.getElementById("result-select").value) + 1;
+            const currentResult = allResults[document.getElementById("result-select").value];
+            const currentQuestion = currentResult.data.question;
+
+            const messageAlreadyExists = d3.select("#results-sent").selectAll(".result-item").nodes().some(node => {
+                return node.innerText.includes(`Result${currentIndex}, Question: ${currentQuestion}`);
+            });
+            //console.log(dataPoint);
+
+            if (!messageAlreadyExists) {
+                d3.select("#result-message")
+                    .append("div")
+                    .html(`Data Point: ${dataPoint}`);
+
+                d3.select("#results-sent")
+                    .append("div")
+                    .classed("result-item", true)
+                    .style("background-color", "#7a9980")
+                    .style("border-radius", "10px")
+                    .style("min-height", "50px")
+                    .style("display", "flex")
+                    .style("align-items", "center")
+                    .style("justify-content", "center")
+                    .style("color", "white")
+                    .style("padding", "10px")
+                    .style("margin", "10px")
+                    .html(d => `<div class="result-text">Result${currentIndex}, Question: ${currentQuestion}</div>`)
+                    .on("click", function () {
+                        d3.select(this).remove();
+                        const resultMessageDiv = d3.select("#result-message").selectAll("div");
+                        resultMessageDiv.each(function () {
+                            const div = d3.select(this);
+                            if (div.html().includes(`${currentQuestion}`)) {
+                                div.remove();
+                            }
+                        });
+                    })
+                    .on("mouseover", function () {
+                        d3.select(this)
+                            .style("background-color", "#5a7a60");
+                    })
+                    .on("mouseout", function () {
+                        d3.select(this)
+                            .style("background-color", "#7a9980");
+                    });
+            }
+        });
+
+        d3.select("#granularity").on("change", function () {
+            currentGranularity = this.value;
+            clearDocHighlights();
+            document.querySelectorAll('.output-line').forEach(function (element) {
+                element.style.fontWeight = 'normal';
+                element.style.backgroundColor = 'transparent';
+            });
+            currentSentenceIndex = null;
+            currentDocValues = [];
+            applyThresholdFilter();
+            if (currentGranularity === "Document-level") {
+                document.querySelector('.filter-slider').style.display = 'none';
+            } else {
+                document.querySelector('.filter-slider').style.display = 'block';
+            }
+        });
+
+        function clearDocHighlights() {
+            d3.selectAll(".doc-item").style("background", "none");
+            d3.selectAll(".doc-content span").each(function () {
+                const parent = this.parentNode;
+                parent.replaceChild(document.createTextNode(this.textContent), this);
+                parent.normalize();
+                d3.select(".color-box")
+                    .style("background", "none")
+                    .style("border-color", "#ddd");
+                d3.select(".value-display")
+                    .text("Click to show value")
+                    .style("color", "#666");
+            });
+        }
+
+        function getColor(value) {
+            const alpha = value * 0.8 + 0.2;
+            return `rgba(255,50,50,${alpha})`;
+        }
+        function parseDocumentText(text) {
+            const match = text.match(/\[(\d+)\]\(Title:(.*?)\)(.*)/);
+            return {
+                number: match[1],
+                title: match[2],
+                content: match[3]
+            };
+        }
+
+
+
+        async function sendMessage() {
+            const apiKey = document.getElementById("api_key").value;
+            const message = document.getElementById("message").value;
+            const datapoints = document.getElementById("result-message").innerText;
+            const pipeline = formatPipeline(nodes, edges);
+            special = message
+
+            if (!message) {
+                special = "Given the pipeline, which is a directed graph described using nodes and edges, and the datapoint provided, please generate an answer explaining the issues leading to the poor performance of this datapoint. Additionally, provide some advice for improvement, either in the pipeline design or other relevant areas. Important: Only provide specific advice based on the information provided in the pipeline and datapoint, and give advice that can solve similar issues in the future. Do not provide general advice that is not directly related to the pipeline or datapoint."
+            }
+            const prompt = formatItemForHelper(pipeline, datapoints, special);
+            const responseElement = document.getElementById("response");
+            responseElement.innerText = "";
+
+            if (!apiKey) {
+                alert("请填写 API Key");
+                return;
+            }
+
+
+            const response = await fetch("http://127.0.0.1:5000/chat", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ api_key: apiKey, message: prompt })
+            });
+
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            while (true) {
+                const { value, done } = await reader.read();
+                if (done) break;
+                responseElement.innerText += decoder.decode(value); // 逐步添加文本
+            }
+        }
+
+        function formatDataPoint() {
+            const currentResult = allResults[document.getElementById("result-select").value];
+            //console.log(currentResult);
+            const question = currentResult.data.question;
+            const answer = currentResult.data.answer;
+            const docs = currentResult.doc_cache;
+            const output = currentResult.output;
+            const dataPoint = {
+                question: question,
+                answer: answer,
+                documents: docs,
+                output: output
+            };
+
+            return JSON.stringify(dataPoint, null, 2)
+        }
+
+        function formatPipeline(nodes, edges) {
+            let pipeline = {
+                nodes: JSON.parse(JSON.stringify(nodes, (key, value) => {
+                    return ["x", "y", "vx", "vy", "index"].includes(key) ? undefined : value;
+                })),
+                edges: JSON.parse(JSON.stringify(edges, (key, value) => {
+                    return ["x", "y", "vx", "vy", "weight", "index"].includes(key) ? undefined : value;
+                }))
+            };
+
+            return JSON.stringify(pipeline, null, 2)
+        }
+
+        function formatItemForHelper(pipeline, dataPoint, special = "Please generate an answer explaining the issues leading to the poor performance of this datapoint. Additionally, provide some advice for improvement, either in the pipeline design or other relevant areas. Important: Only provide specific advice based on the information provided in the pipeline and datapoint, and give advice that can solve similar issues in the future. Do not provide general advice that is not directly related to the pipeline or datapoint.") {
+
+
+            const prompt = `
+            You are given a pipeline, which is a directed graph described using nodes and edges as well as datapoints as below.
+            Instruction: ${special}
+            
+            Pipeline: ${JSON.stringify(pipeline, null, 2)}
+            Datapoint(s): ${JSON.stringify(dataPoint, null, 2)}
+
+            `;
+
+            return prompt
+        }
+        function getTextOffset(formattedHtml) {
+            const temp = document.createElement('div');
+            temp.innerHTML = formattedHtml;
+            return temp.textContent.length - temp.querySelector('strong').nextSibling.textContent.length;
+        }
+
+        function getOutput(data) {
+            return fetch("http://127.0.0.1:5000/run_pipeline", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(data)
+            })
+                .then(response => response.json())
+                .catch(error => {
+                    console.error("Error:", error);
+                    throw error;  // 确保错误能被外部 `catch`
+                });
+        }
+
+        document.addEventListener('keydown', function (event) {
+            if (event.key === 'r' || event.key === 'R') {
+                repaint();
+            }
+        });
+        // document.getElementById('refresh-btn').addEventListener('click', repaint);
+
+        async function repaint() {
+            try {
+                // 从后端获取最新数据
+                const response = await fetch('http://127.0.0.1:5000/get_nodes', {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({})
+                });
+                const { nodes: newNodes, edges: newEdges } = await response.json();
+
+                // 更新数据引用
+                currentNodes = JSON.parse(newNodes);
+                currentEdges = JSON.parse(newEdges);
+                console.log(currentNodes, currentEdges);
+                
+                // 重新创建图表
+                createGraph(currentNodes, currentEdges);
+            } catch (error) {
+                console.error("Error:", error);
+                throw error;  // 确保错误能被外部 `catch`
+            }
+        }
+
+
+        async function getConfigForDisplay(module_name, config) {
+            data = {
+                module_name: module_name,
+                config: config
+            }
+
+            try {
+                const response = await fetch('http://127.0.0.1:5000/get_config', {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(data)
+                });
+                return await response.json()
+
+
+            } catch (error) {
+                console.error("Error:", error);
+                throw error;  // 确保错误能被外部 `catch`
+            }
+
+
+        }
+
+        async function editAndUpdate(updateInfo, o) {
+            data = {
+                update_info: updateInfo,
+                update_object: o
+            }
+
+            try {
+                const response = await fetch('http://127.0.0.1:5000/update', {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(data)
+                });
+
+
+            } catch (error) {
+                console.error("Error:", error);
+                throw error;  // 确保错误能被外部 `catch`
+            }
+
+
+        }
+    </script>
+</body>
+
+</html>
