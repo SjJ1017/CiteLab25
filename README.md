@@ -33,8 +33,19 @@ After installation, run the following command:
 python app.py
 ```
 After having launched the page, you can try different functionalities of Citefix interface. For more demonstrations, please refer to our video on [Youtube](https://youtu.be/aWuIG2OY7e8)
+If you want to experience the static demo directly, please visit [CiteLab Demo](https://sjj1017.github.io/CiteLab25/).
 
 ## Usage
+
+### Download or Prepare Dataset
+
+To get started, download the dataset from the following link:
+
+```bash
+wget https://raw.githubusercontent.com/SjJ1017/CiteLab/refs/heads/main/data/asqa_eval_gtr_top100.json -O data/asqa_eval_gtr_top100.json
+```
+
+Alternatively, you can create your own dataset by following the format provided in the `data/dataset.json` file. Ensure that your dataset includes the necessary fields such as `question`, `docs`, and any other required attributes for your pipeline.
 
 ### Run a Citation Generation Pipeline
 
