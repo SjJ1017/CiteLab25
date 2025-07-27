@@ -8,7 +8,7 @@
 
 **CiteLab** is an open-source, extensible toolkit designed to facilitate the implementation and evaluation of citation generation methods for Large Language Models (LLMs). It offers a modular framework to standardize citation tasks, enabling reproducible and comparable research while fostering the development of new approaches to improve citation quality, as well as an visual interface.
 
-# 🚀 Live Demo: [Click here to try it out](https://huggingface.co/spaces/SHEN1017/Citelab)
+🚀 Live Demo: [Click here to try it out](https://huggingface.co/spaces/SHEN1017/Citelab)
 🆓 **Special for ACL Conference**: No API key required during the conference period!
 
 ![Citeflow Design](asset/design.png)
